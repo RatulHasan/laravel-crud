@@ -44,9 +44,9 @@ php artisan key:generate
 run project.
 
 ### For Linux user 
-The stream or file "/var/www/html/laravel-cms/storage/logs/laravel.log" could not be opened: failed to open stream: Permission denied
+The stream or file "/root/path/lara-crud/storage/logs/laravel.log" could not be opened: failed to open stream: Permission denied
 
-if see this kind of error 
+if see this kind of Permission denied error 
 
 just run this command from outside your project root directory to permit read and write
 
