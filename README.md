@@ -43,6 +43,21 @@ php artisan key:generate
 
 run project.
 
+in Table Name (input) give your database table name & hit save.
+1 Controller should create accourding to your given table name
+1 view folder should create accourding to your given table name
+A CRUD routes should create accourding to your given table name in web.php
+
+### To check
+
+Url: http://path/to/root/lara-crud/table_name
+
+You should see a list page.
+
+### Now add this to your nav
+/laravel-crud/resources/views/admin/pages/navbar.blade.php
+
+
 ### For Linux user 
 The stream or file "/root/path/lara-crud/storage/logs/laravel.log" could not be opened: failed to open stream: Permission denied
 
