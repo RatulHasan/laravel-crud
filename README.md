@@ -50,7 +50,9 @@ A CRUD routes should create accourding to your given table name in web.php
 
 ### To check
 
+```
 Url: http://path/to/root/lara-crud/table_name
+```
 
 You should see a list page.
 
