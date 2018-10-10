@@ -60,61 +60,57 @@ class AdminController extends Controller
 
     public function saveCrud(Request $request)
     {
-        $table_name  =  $request->input('table_name',true);
+        $table_name = $request->input('table_name', true);
 
-        $get_db_info  =  \DB::getDatabaseName();
+        $get_db_info = \DB::getDatabaseName();
 
-        $get_table_info  =  \Schema::getColumnListing($table_name);
-        $get_table_column_info  =  DB::select("describe $table_name");
-
-//        dd($get_table_column_info);
-
-
+        $get_table_info = \Schema::getColumnListing($table_name);
+        $get_table_column_info = DB::select("describe $table_name");
 
         try {
 
-                /**
-                 * MAKE ROUTES
-                 */
+            /**
+             * MAKE ROUTES
+             */
 
-                $makeRoutes = "
+            $makeRoutes = "
 
 /**
- * MAKE ROUTES FOR ".ucwords($table_name)."
+ * MAKE ROUTES FOR " . ucwords($table_name) . "
  */
 Route::get('/" . $table_name . "','" . ucfirst($table_name) . "Controller@index');
 Route::post('/save_" . $table_name . "','" . ucfirst($table_name) . "Controller@save" . ucfirst($table_name) . "');
 Route::patch('/update_" . $table_name . "','" . ucfirst($table_name) . "Controller@update" . ucfirst($table_name) . "');
 /**
- * MAKE ROUTES FOR ".ucwords($table_name)."
+ * MAKE ROUTES FOR " . ucwords($table_name) . "
  */";
 
 
             $file = "routes/web.php";
-            $fh = fopen($file,'a') or die("Unable to open file!");
+            $fh = fopen($file, 'a') or die("Unable to open file!");
 // using file_put_contents() instead of fwrite()
-                fwrite($fh, $makeRoutes);
+            fwrite($fh, $makeRoutes);
 
-                fclose($fh);
+            fclose($fh);
 
-                /**
-                 * MAKE ROUTES
-                 */
+            /**
+             * MAKE ROUTES
+             */
 
 
-                $masterExtends = 'admin.master';
-                $sectionContent = 'main_content';
-                $data = '$data';
-                $dataObj = '$data->';
+            $masterExtends = 'admin-login.master';
+            $sectionContent = 'main_content';
+            $data = '$data';
+            $dataObj = '$data->';
 
 
             /**
              * MAKE LIST VIEW
              */
 
-            $table_head='';
-            $td='';
-            $editData='';
+            $table_head = '';
+            $td = '';
+            $editData = '';
             $requiredSpan = '';
             $required = '';
             $allData = '$allData';
@@ -124,107 +120,66 @@ Route::patch('/update_" . $table_name . "','" . ucfirst($table_name) . "Controll
             $ajaxData = '';
             $getPriKey = '';
             $i = 0;
-
-            foreach($get_table_info as $key => $get_table){
+            $i = 0;
+//        dd($get_table_column_info);
+            $validations='';
+            foreach ($get_table_info as $key => $get_table) {
 //                print_r($get_table);
 //                echo "\n";
-                if($get_table == "updated_at"){
-//                    date("d-m-Y", strtotime($data->created_on))
-//                        $td .= '
-//                        <td>{{ date("d-m-Y", strtotime(' . $dataObj . $get_table . ')) }}</td>
-//                    ';
-                }else {
-                    if($get_table == "created_on"){
-//                    date("d-m-Y", strtotime($data->created_on))
-                        $td .= '
-                        <td>{{ date("d-m-Y", strtotime(' . $dataObj . $get_table . ')) }}</td>
-                    ';
-                    }else {
-                        $td .= '
+
+                //------------------------VALIDATIONS-----------------------------//
+                if ($get_table_column_info[$i]->Key != 'PRI') {
+                    if ($get_table_column_info[$i]->Null == 'NO') {
+                        $req = 'required |';
+                    }else{
+                        $req = '';
+                    }
+
+                    $content = $get_table_column_info[$i]->Type;
+                    $start = "(";
+                    $end = ")";
+                    $r = explode($start, $content);
+                    if (isset($r[1])){
+                        $r = explode($end, $r[1]);
+                        $output = $r[0];
+                    }else{
+                        $output = '';
+                    }
+
+                    if($output){
+                        $max = ' max:'.$output.'|';
+                    }else{
+                        $max ='';
+                    }
+                    $validations .= "'$get_table' => '$req$max',\n";
+                }
+
+                //------------------------VALIDATIONS-----------------------------//
+
+
+                $td .= '
                         <td>{{ ' . $dataObj . $get_table . ' }}</td>
                     ';
-                    }
-                }
-                    $editData .= "data-$get_table=\"{{ $dataObj$get_table }}\"
+                $editData .= "data-$get_table=\"{{ $dataObj$get_table }}\"
                     ";
 
-
-                $column=ucfirst($get_table);
-                $column=str_replace("_"," ","$column");
-                if($get_table == "updated_at") {
-
-                }else {
-                    $table_head .= "
+                $column = ucfirst($get_table);
+                $column = str_replace("_", " ", "$column");
+                $table_head .= "
                                 <th>" . $column . "</th>
                             ";
-                }
 
-                if($get_table_column_info[$i]->Null == 'NO'){
+                if ($get_table_column_info[$i]->Null == 'NO') {
                     $requiredSpan = "<span class=\"required\">*</span>";
                     $required = "required";
-                }else{
+                } else {
                     $requiredSpan = '';
                     $required = '';
                 }
 
-                if($get_table_column_info[$i]->Key != 'PRI'){
-                    if($get_table == "created_on" || $get_table == "updated_at") {
+                if ($get_table_column_info[$i]->Key != 'PRI') {
 
-                    }else{
-                        if($get_table == "start_from" || $get_table == "end_to") {
-                            $formInput .= "
-                        <div class=\"form-group\" id=\"pre_vou_code1\">
-                            <label class=\"control-label col-md-3 col-sm-3 col-xs-12\" for=\"$get_table\">
-                                " . ucwords($column) . " " . $requiredSpan . "
-                            </label>
-
-                            <div class=\"col-md-6 col-sm-6 col-xs-12\">
-                                <input $required type=\"date\" name=\"$get_table\" autocomplete=\"off\" id=\"$get_table\" class=\"form-control col-md-7 col-xs-12\">
-                            </div>
-                        </div>";
-                            $formUpdateInput .= "            
-                        <div class=\"form-group\" id=\"pre_vou_code1\">
-                            <label class=\"control-label col-md-3 col-sm-3 col-xs-12\" for=\"edit_$get_table\">
-                                " . ucwords($column) . " " . $requiredSpan . "
-                            </label>
-
-                            <div class=\"col-md-6 col-sm-6 col-xs-12\">
-                                <input $required type=\"date\" name=\"$get_table\" autocomplete=\"off\" id=\"edit_$get_table\" class=\"form-control col-md-7 col-xs-12\">
-                                
-                            </div>
-                        </div>";
-                        }else {
-                            if ($get_table == "status") {
-                                    $formInput .= "
-                            <div class=\"form-group\" id=\"pre_vou_code1\">
-                                <label class=\"control-label col-md-3 col-sm-3 col-xs-12\" for=\"$get_table\">
-                                    " . ucwords($column) . " " . $requiredSpan . "
-                                </label>
-    
-                                <div class=\"col-md-6 col-sm-6 col-xs-12\">
-                                    <select required name=\"$get_table\" id=\"$get_table\" class=\"form-control col-md-7 col-xs-12\">
-                                        <option value=\"Active\">Active</option>
-                                        <option value=\"Inactive\">Inactive</option>
-                                    </select>
-                                </div>
-                            </div>";
-                                    $formUpdateInput .= "            
-                            <div class=\"form-group\" id=\"pre_vou_code1\">
-                                <label class=\"control-label col-md-3 col-sm-3 col-xs-12\" for=\"edit_$get_table\">
-                                    " . ucwords($column) . " " . $requiredSpan . "
-                                </label>
-    
-                                <div class=\"col-md-6 col-sm-6 col-xs-12\">
-                                    <select required name=\"$get_table\" id=\"edit_$get_table\" class=\"form-control col-md-7 col-xs-12\">
-                                        <option value=\"Active\">Active</option>
-                                        <option value=\"Inactive\">Inactive</option>
-                                    </select>
-                                    
-                                </div>
-                            </div>";
-                            } else {
-                                $formInput .= "
-                        <div class=\"form-group\" id=\"pre_vou_code1\">
+                    $formInput .= "<div class=\"form-group\" id=\"pre_vou_code1\">
                             <label class=\"control-label col-md-3 col-sm-3 col-xs-12\" for=\"$get_table\">
                                 " . ucwords($column) . " " . $requiredSpan . "
                             </label>
@@ -233,8 +188,8 @@ Route::patch('/update_" . $table_name . "','" . ucfirst($table_name) . "Controll
                                 <input $required type=\"text\" name=\"$get_table\" autocomplete=\"off\" id=\"$get_table\" class=\"form-control col-md-7 col-xs-12\">
                             </div>
                         </div>";
-                                $formUpdateInput .= "            
-                        <div class=\"form-group\" id=\"pre_vou_code1\">
+
+                    $formUpdateInput .= "<div class=\"form-group\" id=\"pre_vou_code1\">
                             <label class=\"control-label col-md-3 col-sm-3 col-xs-12\" for=\"edit_$get_table\">
                                 " . ucwords($column) . " " . $requiredSpan . "
                             </label>
@@ -244,23 +199,17 @@ Route::patch('/update_" . $table_name . "','" . ucfirst($table_name) . "Controll
                                 
                             </div>
                         </div>";
-                            }
-                        }
-
-
-                        $ajaxData .= "
+                    $ajaxData .= "
         var $get_table = $(this).data('" . $get_table . "');
         $(\"#edit_" . $get_table . "\").val($get_table);";
-                    }
-                }else{
+                } else {
 
                     $getPriKey = $get_table;
 
-$formUpdateInput .=
-    "<input type=\"hidden\" name=\"$get_table\" id=\"edit_$get_table\" class=\"form-control col-md-7 col-xs-12\">";
+                    $formUpdateInput .= "<input type=\"hidden\" name=\"$get_table\" id=\"edit_$get_table\" class=\"form-control col-md-7 col-xs-12\">";
                     $ajaxData .= "
-        var $get_table = $(this).data('".$get_table."');
-        $(\"#edit_".$get_table."\").val($get_table);";
+        var $get_table = $(this).data('" . $get_table . "');
+        $(\"#edit_" . $get_table . "\").val($get_table);";
                 }
 
                 $i++;
@@ -269,9 +218,8 @@ $formUpdateInput .=
 //            dd($getPriKey);
 
 
-
-                $createViewContent = "@extends('" . $masterExtends . "')
-@section('".$sectionContent."')
+            $createViewContent = "@extends('" . $masterExtends . "')
+@section('" . $sectionContent . "')
 <link rel=\"stylesheet\" href=\"{{ asset('public/admin-panel/css/datatables.net-bs/css/dataTables.bootstrap.min.css') }}\">
 <div class=\"box box-info\">
     <div class=\"box-header\">
@@ -283,7 +231,7 @@ $formUpdateInput .=
         <table id=\"example1\" class=\"table table-bordered table-striped\">
             <thead>
             <tr>                
-                ".$table_head."
+                " . $table_head . "
                 
                 <th>Action</th>
             </tr>
@@ -291,7 +239,7 @@ $formUpdateInput .=
             <tbody>
             @foreach($allData as $data)
                 <tr>
-                    ".$td."
+                    " . $td . "
                     <td>
                         <button type=\"button\" class=\"btn btn-primary btn-xs button edit_button\"
                                 data-toggle=\"modal\" data-target=\"#edit_" . $table_name . "\"
@@ -313,13 +261,13 @@ $formUpdateInput .=
         <div class=\"modal-content\">
             <div class=\"modal-header\">
                 <button aria-hidden=\"true\" data-dismiss=\"modal\" class=\"close\" type=\"button\">×</button>
-                <h3 class=\"modal-title\">".ucwords($table_name)." form </h3>
+                <h3 class=\"modal-title\">" . ucwords($table_name) . " form </h3>
             </div>
             <div class=\"modal-body\">
                 <div class=\"row\">
                     <form method=\"post\" action=\"{{ URL::to('save_" . $table_name . "') }}\" data-parsley-validate class=\"form-horizontal form-label-left\">
                         {{ csrf_field() }}
-                        ".$formInput."
+                        " . $formInput . "
                         <div class=\"ln_solid\"></div>
                         <div class=\"form-group\">
                             <div class=\"col-md-6 col-sm-6 col-xs-12 col-md-offset-3\">
@@ -341,14 +289,14 @@ $formUpdateInput .=
         <div class=\"modal-content\">
             <div class=\"modal-header\">
                 <button aria-hidden=\"true\" data-dismiss=\"modal\" class=\"close\" type=\"button\">×</button>
-                <h3 class=\"modal-title\">Edit ".ucwords($table_name)." form </h3>
+                <h3 class=\"modal-title\">Edit " . ucwords($table_name) . " form </h3>
             </div>
             <div class=\"modal-body\">
                 <div class=\"row\">
                     <form method=\"post\" action=\"{{ URL::to('update_" . $table_name . "') }}\" data-parsley-validate class=\"form-horizontal form-label-left\">
                         {{ csrf_field() }}
                         {{ method_field('PATCH') }}
-                        ".$formUpdateInput."
+                        " . $formUpdateInput . "
                         <div class=\"ln_solid\"></div>
                         <div class=\"form-group\">
                             <div class=\"col-md-6 col-sm-6 col-xs-12 col-md-offset-3\">
@@ -365,7 +313,7 @@ $formUpdateInput .=
 
 <script>
     $(document).on( \"click\", '.edit_button',function(e) {
-        ".$ajaxData."
+        " . $ajaxData . "
 
     });
 </script>
@@ -374,16 +322,11 @@ $formUpdateInput .=
 <script src=\"{{ asset('public/admin-panel/css/datatables.net-bs/js/dataTables.bootstrap.min.js') }}\"></script>
 <script>
     $(function () {
-        $('#example1').DataTable({
-            'pageLength': 25,
-            'order': [ 0, 'desc' ]
-        })
+        $('#example1').DataTable()
+
     })
 </script>
 @endsection";
-
-
-
 
 
             /*
@@ -393,16 +336,22 @@ $formUpdateInput .=
             $controller_name = ucfirst($table_name) . "Controller.php";
             $controller_path = 'app/Http/Controllers/';
 
-            $created = '$allData["created_on"] = date("Y-m-d H:i:s");';
-            $updated = '$allData["updated_at"] = date("Y-m-d H:i:s");';
             $req = '$request';
+            $validate = 'validate';
+            $ths = '$this';
+            $_created_on = "['" . $table_name . "_created_on'] = ";
+            $_updated_at = "['" . $table_name . "_updated_at'] = ";
+            $_merchant_id = "['merchant_id'] = ";
+            $merchant_id = '$request->session()->get("user.merchant_id")';
+            $created_on = 'date("Y-m-d H:i:s")';
+            $updated_at = 'date("Y-m-d H:i:s")';
             $_token = "['_token']";
             $_method = "['_method']";
 
 
             $createControllerContent = "<?php
     /**
-     * This Controller is auto generated by CRUD System. ".date('d-m-Y H:i:sa')."
+     * This Controller is auto generated by CRUD System. " . date('d-m-Y H:i:sa') . "
      *
      * @Author Ratul Hasan
      * @Git url # https://github.com/RatulHasan/
@@ -413,6 +362,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
+use Whoops\Exception\ErrorException;
 
 session_start();
 
@@ -436,28 +386,35 @@ class " . ucfirst($table_name) . "Controller extends Controller
     {
         $allData = DB::table('" . $table_name . "')->get();
 
-        return view('admin." . $table_name . ".$table_name', get_defined_vars());
+        return view('admin-login/" . $table_name . ".$table_name', get_defined_vars());
 
     }
 
-    public function save".ucfirst($table_name)." (Request $req)
+    public function save" . ucfirst($table_name) . " (Request $req)
     {
         $allData = request()->all();
+        $ths->$validate($req, [ $validations ]);
+        
+        $allData$_created_on $created_on;
+        $allData$_merchant_id $merchant_id;
         unset($allData$_token);
-        $created
+        
+        
         DB::table('$table_name')->insert($allData);
         
         return Redirect::back();
 
     }
 
-    public function update".ucfirst($table_name)." (Request $req)
+    public function update" . ucfirst($table_name) . " (Request $req)
     {
         $allData = request()->all();
+        $allData$_updated_at $updated_at;
+        $allData$_merchant_id $merchant_id;
         unset($allData$_token);
         unset($allData$_method);
-        $updated
-        DB::table('$table_name')->where('$getPriKey',".$allData."['$getPriKey'])->update($allData);
+        
+        DB::table('$table_name')->where('$getPriKey'," . $allData . "['$getPriKey'])->update($allData);
         
         return Redirect::back();
 
@@ -467,28 +424,28 @@ class " . ucfirst($table_name) . "Controller extends Controller
 
 
             $view_page_name = $table_name . ".blade.php";
-            $view_page_path = 'resources/views/admin/';
+            $view_page_path = 'resources/views/admin-login/';
 
             if (!file_exists($view_page_path . "/" . $table_name)) {
 
-                mkdir($view_page_path . "/" . $table_name , 0777, true);
+                mkdir($view_page_path . "/" . $table_name, 0777, true);
 
                 file_put_contents($view_page_path . "/" . $table_name . "/" . $view_page_name, $createViewContent);
 
-                chmod($view_page_path . "/" . $table_name , 0777); // MAKE VIEW FOLDER 777
+                chmod($view_page_path . "/" . $table_name, 0777); // MAKE VIEW FOLDER 777
 
                 chmod($view_page_path . "/" . $table_name . "/" . $view_page_name, 0777); // MAKE VIEW PAGE 777
 
 
             }
 
-                file_put_contents($controller_path . $controller_name, $createControllerContent);
+            file_put_contents($controller_path . $controller_name, $createControllerContent);
 
-                chmod($controller_path . $controller_name, 0777);
+            chmod($controller_path . $controller_name, 0777);
 
 
-                $request->session()->flash('message.level', 'success');
-                $request->session()->flash('message.content', '<strong>Well done!</strong> Task successfully done.
+            $request->session()->flash('message.level', 'success');
+            $request->session()->flash('message.content', '<strong>Well done!</strong> Task successfully done.
             <script>
                 $(".alert1-success").delay(350).addClass("in").fadeOut(4000);
             </script>');
@@ -496,19 +453,10 @@ class " . ucfirst($table_name) . "Controller extends Controller
 
             return Redirect::back();
 
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
 
             return $e->getMessage();
 
         }
-    }
-
-
-    public function member()
-    {
-        $all_members  =  DB::table('my_profile')->orderby('member_name', 'ASC')->get();
-
-        return view('admin.all_contents.member', get_defined_vars());
     }
 }
